@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scheduler</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script src="static/index.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Items</h1>
+        <% items.forEach((v) => { %>
+            <div class="item">
+                <div class="label f8"><%= v %></div>
+                <button class="f2 button red" onclick="remove('<%= v %>')">X</button>
+            </div>
+        <% }) %>
+        <div class="item">
+            <input class="input f8" type="text" id="entry" name="entry" placeholder="New item">
+            <button class="button green f2" onclick="add(document.getElementById('entry').value)">Add</button>
+        </div>
+        <div class="item">
+            <input class="input full" type="text" id="schedule" name="schedule" value="<%= schedule %>" placeholder="0 9 * * *">
+        </div>
+        <div class="item">
+            <button class="full button blue" onclick="subscribe()">Subscribe</button>
+        </div>
+        <div class="item">
+            <button class="full button transparent dim" onclick="unsubscribe()">Unsubscribe</button>
+        </div>
+    </div>
+</body>
+</html>
+
