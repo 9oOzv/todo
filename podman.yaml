@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler
+  namespace: default
+  labels:
+    app: scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scheduler
+  template:
+    metadata:
+      labels:
+        app: scheduler
+    spec:
+      hostNetwork: true
+      containers:
+        - name: scheduler
+          image: docker.io/library/node:alpine
+          workingDir: /app
+          command:
+            - npm
+            - start
+          containerPort: 8080
+          env:
+            - name: DATA_FILE
+              value: /app/data.json
+          volumeMounts:
+            - name: app
+              mountPath: /app
+      volumes:
+        - name: app
+          hostPath:
+            path: ./
