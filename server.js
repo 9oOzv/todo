@@ -41,10 +41,9 @@ class Notifier {
     }
   }
 
-  send_notification(subscription) {
+  send_notification(s) {
     const code = s.code;
     subscription = s.subscription;
-    console.log(`Sending notification to ${code}`);
     const items = this.data.items(code);
     if (items.length === 0) {
       return;
@@ -235,14 +234,19 @@ class Server {
 
   start() {
     this.app.use(bodyParser.json());
-    this.app.use('/static', express.static(path.join(__dirname, 'public')));
-
+    this.app.use(
+      '/static',
+      express.static(path.join(__dirname, 'public'))
+    );
+    this.app.use(
+      '/service-worker.js',
+      express.static(path.join(__dirname, 'service-worker.js'))
+    )
     this.app.get('/:code', this.get.bind(this));
     this.app.post('/:code/add', this.post_add.bind(this));
     this.app.post('/:code/remove', this.post_remove.bind(this));
     this.app.post('/:code/subscribe', this.post_subscribe.bind(this));
     this.app.post('/:code/unsubscribe', this.post_unsubscribe.bind(this));
-
     this.notifier = new Notifier(this.data);
     const port = this.config.port;
     this.app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
