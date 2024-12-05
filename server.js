@@ -41,30 +41,33 @@ class Notifier {
       const code = s.code;
       const schedule = s.schedule;
       log.debug({code, schedule})
-      const job = new cron.schedule(
-        schedule,
-        () => this.send_notification(s),
-      );
+      const f =
+        async () =>
+        this.send_notification(s)
+        .catch(error => log.error(error));
+      const job = new cron.schedule(schedule, f);
       job.start();
       this.jobs.push(job);
     }
   }
 
-  send_notification(s) {
+  async send_notification(s) {
     const code = s.code;
     log.info(`Sending notifications for '${code}'`)
-    subscription = s.subscription;
+    const subscription = s.subscription;
     const items = this.data.items(code);
     if (items.length === 0) {
       return;
     }
     const random_item = items[Math.floor(Math.random() * items.length)];
+    log.debug({code, random_item})
     const payload = JSON.stringify({
       title: `${random_item}`,
     });
-    webpush
+    await webpush
       .sendNotification(subscription, payload)
-      .catch(error => console.error(error));
+      .catch(error => log.error(error));
+    log.debug({code}, 'Notification sent')
   }
 }
 
