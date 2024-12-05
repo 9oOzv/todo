@@ -5,6 +5,11 @@ const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const fs = require('fs');
 const cron = require('node-cron');
+const bunyan = require('bunyan');
+
+logLevel = process.env.DEBUG ? 'debug' : 'info';
+log = bunyan.createLogger({name: 'app', level: logLevel});
+
 
 const config = {
   port: 8080,
@@ -20,18 +25,22 @@ class Notifier {
   }
 
   start() {
+    log.info('Starting notifier')
     this.update();
   }
 
   update() {
+    log.info(`Stopping ${this.jobs.length} jobs`)
     for(const job of this.jobs) {
       job.stop();
     }
     this.jobs = [];
     const subscriptions = this.data.subscriptions();
+    log.info(`Starting ${subscriptions.length} jobs`)
     for (const s of subscriptions) {
       const code = s.code;
       const schedule = s.schedule;
+      log.debug({code, schedule})
       const job = new cron.schedule(
         schedule,
         () => this.send_notification(s),
@@ -43,6 +52,7 @@ class Notifier {
 
   send_notification(s) {
     const code = s.code;
+    log.info(`Sending notifications for '${code}'`)
     subscription = s.subscription;
     const items = this.data.items(code);
     if (items.length === 0) {
@@ -83,6 +93,7 @@ class Data {
   }
 
   load() {
+    log.info(`Loading from ${this.file}`)
     try {
       this.data = require(this.file);
     } catch (error) {
@@ -91,6 +102,7 @@ class Data {
   }
 
   save() {
+    log.info(`Saving to ${this.file}`)
     fs.writeFileSync(
       this.file,
       JSON.stringify(this.data)
@@ -143,6 +155,7 @@ class Data {
   }
 
   add_subscription(code, subscription, schedule = '0 9 * * *') {
+    log.info(`Adding subscription for '${code}'`)
     cron.validate(schedule);
     const subscriptions = this.subscriptions();
     const index = subscriptions.findIndex(
@@ -157,6 +170,7 @@ class Data {
   }
 
   remove_subscription(code) {
+    log.info(`Removing subscription for '${code}'`)
     const subscriptions = this.subscriptions();
     const index = subscriptions.findIndex(
       s => s.code === code
@@ -180,6 +194,7 @@ class Server {
 
   async get(req, res) {
     const code = req.params.code;
+    log.info(`Received GET for '${code}'`)
     const schedule = this.data.subscription(code)?.schedule ?? '';
     const data = {
       items: this.data.items(code),
@@ -195,6 +210,7 @@ class Server {
 
   post_add(req, res) {
     const code = req.params.code;
+    log.info(`Received POST add for '${code}'`)
     const item = req.body.item;
     this.data.add(code, item);
     res.json({ success: true });
@@ -202,6 +218,7 @@ class Server {
 
   post_remove(req, res) {
     const code = req.params.code;
+    log.info(`Received POST remove for '${code}'`)
     const item = req.body.item;
     this.data.remove(code, item);
     res.json({ success: true });
@@ -209,6 +226,7 @@ class Server {
 
   post_subscribe(req, res) {
     const code = req.params.code;
+    log.info(`Received POST subscribe for '${code}`)
     const { schedule, subscription } = req.body;
     const payload = JSON.stringify({
       title: `Subscribed to ${code}`
@@ -227,6 +245,7 @@ class Server {
 
   post_unsubscribe(req, res) {
     const code = req.params.code;
+    log.info(`Received POST unsubscribe for '${code}'`)
     this.data.remove_subscription(code);
     this.notifier.update();
     res.json({ success: true });
