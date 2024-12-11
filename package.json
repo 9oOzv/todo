@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npm install && npm update && node server.js"
+    "start": "if [ -f ./env.sh ]; then . ./env.sh; fi; npm install && npm update && node server.js"
   },
   "keywords": [],
   "author": "",

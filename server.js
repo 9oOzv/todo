@@ -14,13 +14,18 @@ function uid(){
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
-
-const config = {
-  port: 8080,
-  dataFile: path.join(__dirname, 'data.json'),
-  publicVapidKey: '<public key>',
-  privateVapidKey: '<private key',
-}
+class Config {
+  constructor() {
+    this.port ??= process.env.PORT;
+    this.port ??= 8080;
+    this.dataFile ??= process.env.DATA_FILE;
+    this.dataFile ??= path.join(__dirname, 'data.json');
+    this.publicVapidKey ??= process.env.PUBLIC_VAPID_KEY;
+    this.privateVapidKey ??= process.env.PRIVATE_VAPID_KEY;
+    this.externalUrl ??= process.env.EXTERNAL_URL;
+    this.externalUrl ??= `http://localhost:${this.port}`;
+  }
+};
 
 
 class Item {
@@ -72,7 +77,8 @@ class Todo {
 
 
 class Notifier {
-  constructor(data) {
+  constructor(data, config) {
+    this.config = config
     this.data = data;
     this.jobs = [];
   }
@@ -198,9 +204,14 @@ class Data {
 class Server {
   constructor(config) {
     this.config = config;
+    log.debug({config: this.config})
     this.app = express();
     this.data = new Data(this.config.dataFile);
-    this.notifier = new Notifier(this.data);
+    webpush.setVapidDetails(
+      config.externalUrl,
+      config.publicVapidKey,
+      config.privateVapidKey
+    );
   }
 
   save() {
@@ -295,18 +306,13 @@ class Server {
     this.app.post('/:code/remove', this.postRemove.bind(this));
     this.app.post('/:code/subscribe', this.postSubscribe.bind(this));
     this.app.post('/:code/unsubscribe', this.postUnsubscribe.bind(this));
-    this.notifier = new Notifier(this.data);
+    this.notifier = new Notifier(this.data, this.config);
     const port = this.config.port;
     this.app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
     this.notifier.start();
   }
 }
 
-webpush.setVapidDetails(
-  'https://localhost:8080',
-  config.publicVapidKey,
-  config.privateVapidKey
-);
-
+const config = new Config();
 const server = new Server(config);
 server.start();
