@@ -2,24 +2,13 @@ self.addEventListener('push', event => {
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'Default title';
   const options = {
-    body: 'You have a new push notification!',
+    body: data.title,
     icon: '/icon.png',
     badge: '/badge.png',
-    data: {
-      url: '/index.html'
-    },
     actions: [
       {
         action: 'mute1',
         title: 'Mute for 1 hour'
-      },
-      {
-        action: 'mute8',
-        title: 'Mute for 8 hours'
-      },
-      {
-        action: 'mute24',
-        title: 'Mute for 24 hours'
       },
       {
         action: 'open',
