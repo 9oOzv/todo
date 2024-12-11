@@ -71,9 +71,7 @@ async function subscribe() {
     return;
   }
   navigator.serviceWorker.register('/service-worker.js')
-  console.log('foo')
   const registration = await navigator.serviceWorker.ready;
-  console.log('bar')
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: 'BDXyko3QxCAbZ_IZ1uKYQCL51v3WxK6Z2jgEOvPixdtXSf97XPtm5-IA84SER2j0TSI-a_GqCtQ7sfKvY9mU2fI'  // VAPID public key

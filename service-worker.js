@@ -4,6 +4,7 @@ self.addEventListener('push', event => {
   const data = event.data ? event.data.json() : {};
   const title = data.title ?? 'Default title';
   url = data.url ?? '';
+  console.log(url);
   const options = {
     body: data.title,
     icon: '/icon.png',
@@ -51,20 +52,19 @@ async function muteFor(seconds) {
 
 self.addEventListener('notificationclick', event => {
   const action = event.action;
-  let p;
   switch (action) {
     case 'mute1':
-      p = muteFor(60 * 60);
+      muteFor(60 * 60);
       break;
     case 'mute8':
-      p = muteFor(8 * 60 * 60);
+      muteFor(8 * 60 * 60);
       break;
     case 'mute24':
-      p = muteFor(24 * 60 * 60);
+      muteFor(24 * 60 * 60);
       break;
     case 'open':
-      p = self.clients.openWindow('/index.html');
+      clients.openWindow(`${url}`)
+        .then((wc) => wc.focus());
       break;
   }
-  event.waitUntil(p);
 });

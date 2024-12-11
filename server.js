@@ -78,7 +78,7 @@ class Todo {
 
 class Notifier {
   constructor(data, config) {
-    this.config = config
+    this.config = config;
     this.data = data;
     this.jobs = [];
   }
@@ -283,7 +283,8 @@ class Server {
     const todoName = req.params.code;
     log.info(`Received POST subscribe for '${todoName}`)
     const payload = JSON.stringify({
-      title: `Subscribed to ${todoName}`
+      title: `Subscribed to ${todoName}`,
+      url: this.config.externalUrl
     });
     const subInfo = new SubInfo(req.body);
     this.data
