@@ -1,35 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scheduler</title>
-    <link rel="stylesheet" href="static/style.css">
-    <script src="static/index.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scheduler</title>
+  <link rel="stylesheet" href="static/style.css">
+  <script src="static/index.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Items</h1>
-        <% items.forEach((v) => { %>
-            <div class="item">
-                <div class="label f8"><%= v %></div>
-                <button class="f2 button red" onclick="remove('<%= v %>')">X</button>
-            </div>
-        <% }) %>
-        <div class="item">
-            <input class="input f8" type="text" id="entry" name="entry" placeholder="New item">
-            <button class="button green f2" onclick="add(document.getElementById('entry').value)">Add</button>
-        </div>
-        <div class="item">
-            <input class="input full" type="text" id="schedule" name="schedule" value="<%= schedule %>" placeholder="0 9 * * *">
-        </div>
-        <div class="item">
-            <button class="full button blue" onclick="subscribe()">Subscribe</button>
-        </div>
-        <div class="item">
-            <button class="full button transparent dim" onclick="unsubscribe()">Unsubscribe</button>
-        </div>
+  <div class="container">
+    <h1>Todo</h1>
+    <% todo.items.forEach((v) => { %>
+      <div class="item">
+        <div class="label f8" id="<%= `text ${v.id}` %>"><%= v.text %></div>
+        <input class="input f1" autocomplete="off" type="text" id="<%= `priority ${v.id}` %>" value="<%= v.priority %>">
+        <input class="input f4" autocomplete="off" type="date" id="<%= `date ${v.id}` %>" value="<%= v.dateString() %>">
+        <button class="f1 button icon warn" onclick="remove('<%= v.id %>')">󰩹</button>
+        <button class="f1 button icon tertiary" onclick="update('<%= v.id %>')">󱩼</button>
+      </div>
+    <% }) %>
+    <div class="item">
+      <input class="input f8" autocomplete="off" type="text" id="entry" name="entry" placeholder="New item">
+      <input class="input f1" autocomplete="off" type="text" id="priority" name="priority" placeholder="priority">
+      <input class="input f4" autocomplete="off" type="date" id="date" name="date" placeholder="date">
+      <button class="button icon primary f2" onclick="add()">󰌴</button>
     </div>
+    <div class="item">
+      <input class="input full" autocomplete="off" type="text" id="schedule" name="schedule" value="<%= subInfo?.schedule %>" placeholder="0 9 * * *">
+    </div>
+    <div class="item">
+      <button class="full button secondary" onclick="subscribe()">Subscribe</button>
+    </div>
+    <div class="item">
+      <button class="full button misc" onclick="unsubscribe()">Unsubscribe</button>
+    </div>
+  </div>
 </body>
 </html>
 

@@ -10,6 +10,10 @@ const bunyan = require('bunyan');
 logLevel = process.env.DEBUG ? 'debug' : 'info';
 log = bunyan.createLogger({name: 'app', level: logLevel});
 
+function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+}
+
 
 const config = {
   port: 8080,
@@ -17,6 +21,55 @@ const config = {
   publicVapidKey: '<public key>',
   privateVapidKey: '<private key',
 }
+
+
+class Item {
+  constructor({id, text, priority, date}) {
+    id ??= uid();
+    this.id = id;
+    this.text = text;
+    if(typeof priority !== 'number' || isNaN(priority)) {
+      priority = 1;
+    }
+    this.priority = priority;
+    date = date ? new Date(date) : new Date();
+    this.date = new Date(date.toISOString().split('T')[0]);
+  }
+
+  dateString() {
+    return this.date.toISOString().split('T')[0];
+  }
+}
+
+class Todo {
+  constructor({name, items}) {
+    this.name = name;
+    items ??= [];
+    this.items = items.map(i => new Item(i));
+  }
+
+  update(item) {
+    const index = this.items.findIndex(
+      i => i.id === item.id
+    );
+    if (index === -1) {
+      this.items.push(item);
+    } else {
+      this.items[index] = item;
+    }
+  }
+
+  remove(itemId) {
+    const index = this.items.findIndex(
+      i => i.id === itemId
+    );
+    if (index === -1) {
+      return;
+    }
+    this.items.splice(index, 1);
+  }
+}
+
 
 class Notifier {
   constructor(data) {
@@ -35,15 +88,15 @@ class Notifier {
       job.stop();
     }
     this.jobs = [];
-    const subscriptions = this.data.subscriptions();
-    log.info(`Starting ${subscriptions.length} jobs`)
-    for (const s of subscriptions) {
-      const code = s.code;
+    const subInfos = this.data.subInfos;
+    log.info(`Starting ${subInfos.length} jobs`)
+    for (const s of subInfos) {
+      const todoName = s.todoName;
       const schedule = s.schedule;
-      log.debug({code, schedule})
+      log.debug({todoName, schedule})
       const f =
         async () =>
-        this.send_notification(s)
+        this.sendNotification(s)
         .catch(error => log.error(error));
       const job = new cron.schedule(schedule, f);
       job.start();
@@ -51,138 +104,93 @@ class Notifier {
     }
   }
 
-  async send_notification(s) {
-    const code = s.code;
-    log.info(`Sending notifications for '${code}'`)
+  isDue(item) {
+    const now = new Date();
+    return item.date <= now;
+  }
+
+  async sendNotification(s) {
+    const todoName = s.todoName;
+    log.info(`Sending notifications for '${todoName}'`)
     const subscription = s.subscription;
-    const items = this.data.items(code);
+    const todo = this.data.todo(todoName);
+    const items = todo.items.filter(i => this.isDue(i));
     if (items.length === 0) {
       return;
     }
-    const random_item = items[Math.floor(Math.random() * items.length)];
-    log.debug({code, random_item})
+    const i = Math.floor(Math.random() * items.length);
+    const randomItem = items[i];
+    log.debug({todoName, randomItem})
     const payload = JSON.stringify({
-      title: `${random_item}`,
+      title: `${randomItem.text}`,
     });
     await webpush
       .sendNotification(subscription, payload)
       .catch(error => log.error(error));
-    log.debug({code}, 'Notification sent')
+    log.debug({todoName}, 'Notification sent')
+  }
+}
+
+class SubInfo {
+  constructor({todoName, schedule, subscription}) {
+    this.todoName = todoName;
+    this.schedule = schedule;
+    cron.validate(schedule);
+    this.subscription = subscription;
   }
 }
 
 class Data {
-  constructor(file) {
-    this.file = file;
-    this.init();
-    this.load();
-    this.fix();
+  constructor({todos, subInfos}) {
+    todos = todos ?? [];
+    subInfos = subInfos ?? [];
+    this.todos = todos.map(t => new Todo(t));
+    this.subInfos = subInfos.map(s => new SubInfo(s));
   }
 
-  init() {
-    this.data = {
-      lists: [],
-      subscriptions: []
-    };
-  }
-
-  fix() {
-    for (const s of this.data.subscriptions) {
-      if (!s.schedule) {
-        s.schedule = '0 9 * * *';
+  todo(todoName) {
+    for (const todo of this.todos) {
+      if (todo.name === todoName) {
+        return todo;
       }
     }
-    this.save();
+    const todo = new Todo({name: todoName});
+    this.todos.push(todo);
+    return todo
   }
 
-  load() {
-    log.info(`Loading from ${this.file}`)
+  subscription(todoName) {
     try {
-      this.data = require(this.file);
-    } catch (error) {
-      this.init();
-    }
-  }
-
-  save() {
-    log.info(`Saving to ${this.file}`)
-    fs.writeFileSync(
-      this.file,
-      JSON.stringify(this.data)
-    );
-  }
-
-  items(code) {
-    for (const list of this.data.lists) {
-      if (list.code === code) {
-        return list.items;
-      }
-    }
-    const list = {
-      code: code,
-      items: []
-    }
-    this.data.lists.push(list);
-    this.save();
-    return list.items;
-  }
-
-  subscription(code) {
-    try {
-      return this.data.subscriptions.find(
-        s => s.code === code
+      return this.subInfos.find(
+        s => s.todoName === todoName
       );
     } catch (error) {
       return null;
     }
   }
 
-  subscriptions() {
-    return this.data.subscriptions;
-  }
-
-  add(code, item) {
-    const items = this.items(code);
-    items.push(item);
-    this.save();
-  }
-
-  remove(code, item) {
-    const items = this.items(code);
-    const index = items.indexOf(item);
-    if (index === -1) {
-      return;
-    }
-    items.splice(index, 1);
-    this.save();
-  }
-
-  add_subscription(code, subscription, schedule = '0 9 * * *') {
-    log.info(`Adding subscription for '${code}'`)
-    cron.validate(schedule);
-    const subscriptions = this.subscriptions();
-    const index = subscriptions.findIndex(
-      s => s.code === code
+  addSubInfo(subInfo) {
+    const todoName = subInfo.todoName;
+    log.info(`Adding subscription for '${todoName}'`)
+    const index = this.subInfos.findIndex(
+      s => s.todoName === todoName
     );
     if (index === -1) {
-      subscriptions.push({ code, schedule, subscription });
+      this.subInfos.push(subInfo);
     } else {
-      subscriptions[index] = { code, schedule, subscription };
+      this.subInfos[index] = subInfo;
     }
-    this.save();
   }
 
-  remove_subscription(code) {
-    log.info(`Removing subscription for '${code}'`)
-    const subscriptions = this.subscriptions();
-    const index = subscriptions.findIndex(
-      s => s.code === code
+  removeSubInfo(todoName) {
+    log.info(`Removing subscription for '${todoName}'`)
+    const index = this.subInfos.findIndex(
+      s => s.todoName === todoName
     );
     if (index === -1) {
       return;
     }
-    subscriptions.splice(index, 1);
-    this.save();
+    this.subInfos.splice(index, 1);
   }
 }
 
@@ -195,66 +203,84 @@ class Server {
     this.notifier = new Notifier(this.data);
   }
 
-  async get(req, res) {
-    const code = req.params.code;
-    log.info(`Received GET for '${code}'`)
-    const schedule = this.data.subscription(code)?.schedule ?? '';
-    const data = {
-      items: this.data.items(code),
-      code: code,
-      schedule: schedule,
+  save() {
+    fs.writeFileSync(
+      this.config.dataFile,
+      JSON.stringify(this.data, null, 2)
+    );
+  }
+
+  load() {
+    try{
+      const data = fs.readFileSync(this.config.dataFile);
+      this.data = new Data(JSON.parse(data));
+    } catch (error) {
+      this.data = new Data({});
     }
+  }
+
+  async get(req, res) {
+    const todoName = req.params.code;
+    log.info(`Received GET for '${todoName}'`)
+    const todo = this.data.todo(todoName);
+    const subInfo = this.data.subscription(todoName);
     const html = await ejs.renderFile(
       path.join(__dirname, 'views', 'index.ejs'),
-      data
+      {todo, subInfo}
     );
     res.send(html);
   }
 
-  post_add(req, res) {
-    const code = req.params.code;
-    log.info(`Received POST add for '${code}'`)
-    const item = req.body.item;
-    this.data.add(code, item);
+  postUpdate(req, res) {
+    const todoName = req.params.code;
+    log.info(`Received POST update for '${todoName}'`)
+    const item = new Item(req.body);
+    log.debug({todoName, item})
+    this.data.todo(todoName).update(item);
+    this.save();
     res.json({ success: true });
   }
 
-  post_remove(req, res) {
-    const code = req.params.code;
-    log.info(`Received POST remove for '${code}'`)
-    const item = req.body.item;
-    this.data.remove(code, item);
+  postRemove(req, res) {
+    const todoName = req.params.code;
+    log.info(`Received POST remove for '${todoName}'`)
+    const {id} = req.body;
+    log.debug({todoName, id})
+    this.data
+      .todo(todoName)
+      .remove(id);
+    this.save();
     res.json({ success: true });
   }
 
-  post_subscribe(req, res) {
-    const code = req.params.code;
-    log.info(`Received POST subscribe for '${code}`)
-    const { schedule, subscription } = req.body;
+  postSubscribe(req, res) {
+    const todoName = req.params.code;
+    log.info(`Received POST subscribe for '${todoName}`)
     const payload = JSON.stringify({
-      title: `Subscribed to ${code}`
+      title: `Subscribed to ${todoName}`
     });
-    this.data.add_subscription(
-      code,
-      subscription,
-      schedule
-    );
+    const subInfo = new SubInfo(req.body);
+    this.data
+      .addSubInfo(subInfo);
     webpush
-      .sendNotification(subscription, payload)
+      .sendNotification(subInfo.subscription, payload)
       .catch(error => console.error(error));
     this.notifier.update();
+    this.save();
     res.json({ success: true });
   }
 
-  post_unsubscribe(req, res) {
-    const code = req.params.code;
-    log.info(`Received POST unsubscribe for '${code}'`)
-    this.data.remove_subscription(code);
+  postUnsubscribe(req, res) {
+    const todoName = req.params.code;
+    log.info(`Received POST unsubscribe for '${todoName}'`)
+    this.data.removeSubInfo(todoName);
     this.notifier.update();
+    this.save();
     res.json({ success: true });
   }
 
   start() {
+    this.load();
     this.app.use(bodyParser.json());
     this.app.use(
       '/static',
@@ -265,10 +291,10 @@ class Server {
       express.static(path.join(__dirname, 'service-worker.js'))
     )
     this.app.get('/:code', this.get.bind(this));
-    this.app.post('/:code/add', this.post_add.bind(this));
-    this.app.post('/:code/remove', this.post_remove.bind(this));
-    this.app.post('/:code/subscribe', this.post_subscribe.bind(this));
-    this.app.post('/:code/unsubscribe', this.post_unsubscribe.bind(this));
+    this.app.post('/:code/update', this.postUpdate.bind(this));
+    this.app.post('/:code/remove', this.postRemove.bind(this));
+    this.app.post('/:code/subscribe', this.postSubscribe.bind(this));
+    this.app.post('/:code/unsubscribe', this.postUnsubscribe.bind(this));
     this.notifier = new Notifier(this.data);
     const port = this.config.port;
     this.app.listen(port, () => console.log(`Server running on http://localhost:${port}`));

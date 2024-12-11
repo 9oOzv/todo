@@ -1,9 +1,29 @@
 * {
+    font-family: 'Hack', monospace;
     box-sizing: border-box;
+    font-size: 1rem;
+}
+
+:root {
+    --pb: oklch(0.85 0.3 152);
+    --sb: oklch(0.68 0.2 239);
+    --tb: oklch(0.94 0.23 106);
+    --mb: var(--sb);
+    --wb: oklch(0.68 0.31 350);
+    --pc: oklch(from var(--pb) calc(l * 0.3) calc(c) h);
+    --sc: oklch(from var(--sb) calc(l * 0.3) calc(c) h);
+    --tc: oklch(from var(--tb) calc(l * 0.3) calc(c) h);
+    --mc: oklch(from var(--mb) calc(l * 0.3) calc(c) h);
+    --wc: oklch(from var(--wb) calc(l * 0.3) calc(c) h);
+}
+
+@font-face {
+    font-family: 'Hack';
+    src: url('/static/fonts/hack/HackNerdFontMono-Bold.ttf') format('truetype');
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Hack', monospace;
     margin: 0;
     padding: 0;
     background-color: #000;
@@ -13,6 +33,7 @@ body {
 }
 
 h1 {
+    font-size: 2rem;
     text-align: center;
     padding: 8px 16px;
 }
@@ -25,6 +46,7 @@ h1 {
     flex-direction: column;
     justify-content: center;
 }
+
 .item {
     display: flex;
     flex-direction: row;
@@ -32,19 +54,35 @@ h1 {
     margin: 1rem;
 }
 
-.f2 {
+.f1 {
     flex: 1;
-    min-width: 1px;
+    min-width: 0px;
+}
+
+.f2 {
+    flex: 2;
+    min-width: 0px;
+}
+
+.f4 {
+    flex: 4;
+    min-width: 0px;
 }
 
 .f8 {
     flex: 8;
-    min-width: 1px;
+    min-width: 0px;
 }
 
+.icon {
+    font-size: 1.8rem;
+    line-height: 1rem;
+}
 
 .button {
-    padding: 8px 16px;
+    font-weight: bold;
+    padding: 0.8rem 1.2rem;
+    margin: 2px;
     border: none;
     color: white;
     text-align: center;
@@ -54,6 +92,7 @@ h1 {
 
 .label {
     text-align: center;
+    padding: 0.8rem 1.2rem;
     padding: 8px 16px;
     background: #050505;
     display: inline-block;
@@ -61,8 +100,8 @@ h1 {
 
 .input {
     text-align: center;
-    padding: 8px 16px;
-    margin: 0;
+    padding: 0.8rem 1.2rem;
+    margin: 2px;
     border: none;
     background: #202020;
     color: #fff;
@@ -72,22 +111,27 @@ h1 {
     width: 100%;
 }
 
-.red {
-    background-color: #FF0048;
+.primary {
+    color: var(--pc);
+    background-color: var(--pb);
 }
 
-.green {
-    background-color: #4CAF70;
+.secondary {
+    color: var(--sc);
+    background-color: var(--sb);
 }
 
-.blue {
-    background-color: #007CFF;
+.tertiary {
+    color: var(--tc);
+    background-color: var(--tb);
 }
 
-.dim {
-    color: rgba(255, 255, 255, 0.8);
+.misc {
+    color: var(--mb);
+    background-color: var(--mc);
 }
 
-.dim.button {
-    background-color: rgba(255, 255, 255, 0.02);
+.warn {
+    color: var(--wc);
+    background-color: var(--wb);
 }

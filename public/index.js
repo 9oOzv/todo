@@ -1,13 +1,35 @@
 
 
-function remove(item) {
-  code = window.location.pathname.split('/')[1];
-  fetch(`/${code}/remove`, {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ item })
+function remove(itemId) {
+  todoName = window.location.pathname.split('/')[1];
+  fetch(`/${todoName}/remove`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id: itemId })
+  })
+  .then((res) => res.json())
+  .then((data) => {
+    if (data.success) {
+        window.location.reload();
+    }
+  })
+}
+
+function update(itemId) {
+  const todoName = window.location.pathname.split('/')[1];
+  text = document.getElementById(`text ${itemId}`).textContent;
+  priority = parseInt(document.getElementById(`priority ${itemId}`).value);
+  priority = isNaN(priority) ? 1 : priority;
+  date = document.getElementById(`date ${itemId}`).value;
+  const item = { id: itemId, text, priority, date }
+  fetch(`/${todoName}/update`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(item)
   })
   .then((res) => res.json())
   .then((data) => {
@@ -17,14 +39,18 @@ function remove(item) {
   })
 }
 
-function add(item) {
-  const code = window.location.pathname.split('/')[1];
-  fetch(`/${code}/add`, {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ item })
+function add() {
+  const todoName = window.location.pathname.split('/')[1];
+  text = document.getElementById('entry').value;
+  priority = document.getElementById('priority').value;
+  date = document.getElementById('date').value;
+  const item = { text, priority, date }
+  fetch(`/${todoName}/update`, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(item)
   })
   .then((res) => res.json())
   .then((data) => {
@@ -35,7 +61,7 @@ function add(item) {
 }
 
 async function subscribe() {
-  const code = window.location.pathname.split('/')[1];
+  const todoName = window.location.pathname.split('/')[1];
   let schedule = document.getElementById('schedule').value;
   if(!schedule) {
     schedule = document.getElementById('schedule').placeholder;
@@ -53,9 +79,10 @@ async function subscribe() {
     applicationServerKey: 'BDXyko3QxCAbZ_IZ1uKYQCL51v3WxK6Z2jgEOvPixdtXSf97XPtm5-IA84SER2j0TSI-a_GqCtQ7sfKvY9mU2fI'  // VAPID public key
   });
   console.log('User is subscribed:', subscription);
-  await fetch(`/${code}/subscribe`, {
+  await fetch(`/${todoName}/subscribe`, {
     method: 'POST',
     body: JSON.stringify({
+      todoName,
       schedule,
       subscription,
     }),
@@ -66,10 +93,10 @@ async function subscribe() {
 }
 
 async function unsubscribe() {
-  code = window.location.pathname.split('/')[1];
+  todoName = window.location.pathname.split('/')[1];
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.getSubscription();
-  await fetch(`/${code}/unsubscribe`, {
+  await fetch(`/${todoName}/unsubscribe`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
