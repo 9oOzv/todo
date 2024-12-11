@@ -116,6 +116,11 @@ class Notifier {
   }
 
   async sendNotification(s) {
+    const now = new Date();
+    if (s.muteUntil > now) {
+      log.info(`Notifications for '${s.todoName}' muted until ${s.muteUntil}`)
+      return;
+    }
     const todoName = s.todoName;
     log.info(`Sending notifications for '${todoName}'`)
     const subscription = s.subscription;
@@ -129,6 +134,7 @@ class Notifier {
     log.debug({todoName, randomItem})
     const payload = JSON.stringify({
       title: `${randomItem.text}`,
+      url: `${this.config.externalUrl}/${todoName}`
     });
     await webpush
       .sendNotification(subscription, payload)
@@ -138,11 +144,20 @@ class Notifier {
 }
 
 class SubInfo {
-  constructor({todoName, schedule, subscription}) {
+  constructor({todoName, schedule, subscription, muteUntil}) {
     this.todoName = todoName;
     this.schedule = schedule;
     cron.validate(schedule);
     this.subscription = subscription;
+    muteUntil = new Date(muteUntil);
+    muteUntil = isNaN(muteUntil) ? null : muteUntil;
+    this.muteUntil = muteUntil;
+  }
+
+  muteFor(seconds) {
+    const now = new Date();
+    const muteUntil = new Date(now.getTime() + seconds * 1000);
+    this.muteUntil = isNaN(muteUntil) ? null : muteUntil;
   }
 }
 
@@ -286,6 +301,16 @@ class Server {
     log.info(`Received POST unsubscribe for '${todoName}'`)
     this.data.removeSubInfo(todoName);
     this.notifier.update();
+    this.save();
+    res.json({ success: true });
+  }
+
+  postMute(req, res) {
+    const todoName = req.params.code;
+    const seconds = req.body.seconds;
+    log.info(`Received POST mute for '${todoName}' (${seconds} seconds)`)
+    const subInfo = this.data.subscription(todoName);
+    subInfo.muteFor(seconds);
     this.save();
     res.json({ success: true });
   }
