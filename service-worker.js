@@ -1,10 +1,16 @@
+let url = '';
+
 self.addEventListener('push', event => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Default title';
+  const title = data.title ?? 'Default title';
+  url = data.url ?? '';
   const options = {
     body: data.title,
     icon: '/icon.png',
     badge: '/badge.png',
+    data: {
+      url: url
+    },
     actions: [
       {
         action: 'mute1',
@@ -24,7 +30,7 @@ self.addEventListener('push', event => {
 
 async function muteFor(seconds) {
   const response = await fetch(
-    '/mute',
+    `${url}/mute`,
     {
       method: 'POST',
       body: JSON.stringify({ seconds }),
