@@ -1,5 +1,5 @@
 [Unit]
-Description=Scheduler thingy
+Description=Todo App
 Documentation=man:podman-kube-play(1)
 Wants=default.target
 After=default.target
@@ -8,9 +8,9 @@ RequiresMountsFor=%t/containers
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 TimeoutStopSec=70
-WorkingDirectory=/srv/scheduler
-ExecStart=/usr/bin/podman kube play --replace --service-container=true /srv/scheduler/podman.yaml
-ExecStop=/usr/bin/podman kube down /srv/scheduler/podman.yaml
+WorkingDirectory=/srv/todo
+ExecStart=/usr/bin/podman kube play --replace --service-container=true /srv/todo/podman.yaml
+ExecStop=/usr/bin/podman kube down /srv/todo/podman.yaml
 Type=notify
 NotifyAccess=all
 

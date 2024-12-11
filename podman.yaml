@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scheduler
+  name: todo
   namespace: default
   labels:
-    app: scheduler
+    app: todo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: scheduler
+      app: todo
   template:
     metadata:
       labels:
-        app: scheduler
+        app: todo
     spec:
       hostNetwork: true
       containers:
-        - name: scheduler
+        - name: todo
           image: docker.io/library/node:alpine
           workingDir: /app
           command:
