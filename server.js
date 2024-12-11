@@ -331,6 +331,7 @@ class Server {
     this.app.post('/:code/remove', this.postRemove.bind(this));
     this.app.post('/:code/subscribe', this.postSubscribe.bind(this));
     this.app.post('/:code/unsubscribe', this.postUnsubscribe.bind(this));
+    this.app.post('/:code/mute', this.postMute.bind(this));
     this.notifier = new Notifier(this.data, this.config);
     const port = this.config.port;
     this.app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
