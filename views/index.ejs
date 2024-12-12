@@ -46,9 +46,9 @@
         <button class="full button secondary" onclick="subscribe()">Subscribe</button>
       </div>
       <div class="row lower">
-        <div class="label full">
+        <div class="label full" id='div-muted-until'>
           <% if(subInfo?.muteUntil) { %>
-            Muted until <%= new Date(subInfo.muteUntil).toLocaleString() %>
+            <%= new Date(subInfo.muteUntil).toJSON() %>
           <% } else if(subInfo) { %>
             Subscribed
           <% } %>

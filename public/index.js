@@ -1,4 +1,15 @@
 
+
+function onLoad() {
+  mutedUntilDiv = document.getElementById('div-muted-until');
+  mutedUntilText = mutedUntilDiv.textContent.trim();
+  console.log(mutedUntilText);
+  if (mutedUntilText[mutedUntilText.length - 1] == 'Z') {
+    const date = new Date(mutedUntilText);
+    mutedUntilDiv.textContent = `Muted until ${date.toLocaleString()}`;
+  }
+}
+
 function reloadOrError(response) {
   if (response.ok) {
     window.location.reload();
@@ -131,3 +142,7 @@ async function muteFor(seconds) {
   })
   .then(reloadOrError);
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  onLoad();
+});
