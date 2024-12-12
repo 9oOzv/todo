@@ -55,12 +55,16 @@
         </div>
       </div>
       <div class="row lower">
-        <button class="f1 button misc" onclick="muteFor(3600)"><span class="icon">󰝟</span>1h</button>
-        <button class="f1 button misc" onclick="muteFor(4*3600)"><span class="icon">󰝟</span>4h</button>
-        <button class="f1 button misc" onclick="muteFor(8*3600)"><span class="icon">󰝟</span>8h</button>
-        <button class="f1 button misc" onclick="muteFor(24*3600)"><span class="icon">󰝟</span>1d</button>
-        <button class="f1 button misc" onclick="muteFor(2*24*3600)"><span class="icon">󰝟</span>2d</button>
-        <button class="f1 button misc" onclick="muteFor(7*24*3600)"><span class="icon">󰝟</span>7d</button>
+        <div class='cell'>
+          <button class="f1 button misc" onclick="muteFor(3600)"><span class="icon">󰝟</span>1h</button>
+          <button class="f1 button misc" onclick="muteFor(4*3600)"><span class="icon">󰝟</span>4h</button>
+          <button class="f1 button misc" onclick="muteFor(8*3600)"><span class="icon">󰝟</span>8h</button>
+        </div>
+        <div class='cell'>
+          <button class="f1 button misc" onclick="muteFor(24*3600)"><span class="icon">󰝟</span>1d</button>
+          <button class="f1 button misc" onclick="muteFor(2*24*3600)"><span class="icon">󰝟</span>2d</button>
+          <button class="f1 button misc" onclick="muteFor(7*24*3600)"><span class="icon">󰝟</span>7d</button>
+        </div>
       </div>
       <div class="row lower">
         <button class="full button misc" onclick="unsubscribe()">Unsubscribe</button>
