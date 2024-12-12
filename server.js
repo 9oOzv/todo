@@ -102,7 +102,7 @@ class Notifier {
       log.debug({todoName, schedule})
       const f =
         async () =>
-        this.sendNotification(s)
+        this.sendItemNotification(s)
         .catch(error => log.error(error));
       const job = new cron.schedule(schedule, f);
       job.start();
@@ -115,15 +115,24 @@ class Notifier {
     return item.date <= now;
   }
 
-  async sendNotification(s) {
+  async _sendNotification(s, payload) {
+    const todoName = s.todoName;
+    log.info(`Sending notification for '${todoName}'`)
+    const subscription = s.subscription;
+    log.debug({todoName, payload, subscription})
+    await webpush
+      .sendNotification(subscription, payload)
+      .catch(error => log.error(error));
+    log.debug({todoName}, 'Notification sent')
+  }
+
+  async sendItemNotification(s) {
     const now = new Date();
     if (s.muteUntil > now) {
       log.info(`Notifications for '${s.todoName}' muted until ${s.muteUntil}`)
       return;
     }
     const todoName = s.todoName;
-    log.info(`Sending notifications for '${todoName}'`)
-    const subscription = s.subscription;
     const todo = this.data.todo(todoName);
     const items = todo.items.filter(i => this.isDue(i));
     if (items.length === 0) {
@@ -133,13 +142,31 @@ class Notifier {
     const randomItem = items[i];
     log.debug({todoName, randomItem})
     const payload = JSON.stringify({
-      title: `${randomItem.text}`,
+      title: `${todoName}`,
+      body: randomItem.text,
       url: `${this.config.externalUrl}/${todoName}`
     });
-    await webpush
-      .sendNotification(subscription, payload)
-      .catch(error => log.error(error));
-    log.debug({todoName}, 'Notification sent')
+    await this._sendNotification(s, payload);
+  }
+
+  async sendMuteNotification(s) {
+    const todoName = s.todoName;
+    const payload = JSON.stringify({
+      title: `${todoName}`,
+      body: `Notifications muted until ${s.muteUntil}`,
+      url: this.config.externalUrl
+    });
+    await this._sendNotification(s, payload);
+  }
+
+  async sendSubscriptionNotification(s) {
+    const todoName = s.todoName;
+    const payload = JSON.stringify({
+      title: todoName,
+      body: `Subscribed to ${todoName}`,
+      url: this.config.externalUrl
+    });
+    await this._sendNotification(s, payload);
   }
 }
 
@@ -155,8 +182,9 @@ class SubInfo {
   }
 
   muteFor(seconds) {
-    const now = new Date();
-    const muteUntil = new Date(now.getTime() + seconds * 1000);
+    let date = this.muteUntil;
+    date ??= new Date();
+    const muteUntil = new Date(date.getTime() + seconds * 1000);
     this.muteUntil = isNaN(muteUntil) ? null : muteUntil;
   }
 }
@@ -282,17 +310,11 @@ class Server {
   postSubscribe(req, res) {
     const todoName = req.params.code;
     log.info(`Received POST subscribe for '${todoName}`)
-    const payload = JSON.stringify({
-      title: `Subscribed to ${todoName}`,
-      url: this.config.externalUrl
-    });
     const subInfo = new SubInfo(req.body);
     this.data
       .addSubInfo(subInfo);
-    webpush
-      .sendNotification(subInfo.subscription, payload)
-      .catch(error => console.error(error));
     this.notifier.update();
+    this.notifier.sendSubscriptionNotification(subInfo);
     this.save();
     res.json({ success: true });
   }
@@ -311,7 +333,15 @@ class Server {
     const seconds = req.body.seconds;
     log.info(`Received POST mute for '${todoName}' (${seconds} seconds)`)
     const subInfo = this.data.subscription(todoName);
+    if(!subInfo) {
+      res.json({
+        success: false,
+        error: 'Subscription not found',
+      });
+      return;
+    }
     subInfo.muteFor(seconds);
+    this.notifier.sendMuteNotification(subInfo);
     this.save();
     res.json({ success: true });
   }

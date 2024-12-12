@@ -1,40 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Todo</title>
-  <link rel="stylesheet" href="static/style.css">
-  <script src="static/index.js"></script>
-</head>
-<body>
-  <div class="container">
-    <h1>Todo</h1>
-    <% todo.items.forEach((v) => { %>
-      <div class="item">
-        <div class="label f8" id="<%= `text ${v.id}` %>"><%= v.text %></div>
-        <input class="input f1" autocomplete="off" type="text" id="<%= `priority ${v.id}` %>" value="<%= v.priority %>">
-        <input class="input f4" autocomplete="off" type="date" id="<%= `date ${v.id}` %>" value="<%= v.dateString() %>">
-        <button class="f1 button icon warn" onclick="remove('<%= v.id %>')">󰩹</button>
-        <button class="f1 button icon tertiary" onclick="update('<%= v.id %>')">󱩼</button>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script src="static/index.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Todo</h1>
+
+      <% todo.items.forEach((v) => { %>
+      <div class="row lower2">
+        <div class="label big f8" id="<%= `text ${v.id}` %>"><%= v.text %></div>
       </div>
-    <% }) %>
-    <div class="item">
-      <input class="input f8" autocomplete="off" type="text" id="entry" name="entry" placeholder="New item">
-      <input class="input f1" autocomplete="off" type="text" id="priority" name="priority" placeholder="priority">
-      <input class="input f4" autocomplete="off" type="date" id="date" name="date" placeholder="date">
-      <button class="button icon primary f2" onclick="add()">󰌴</button>
+      <div class="row lower">
+        <div class='cell'>
+          <input class="input f1" autocomplete="off" type="text" id="<%= `priority ${v.id}` %>" value="<%= v.priority %>">
+          <input class="input f1" autocomplete="off" type="date" id="<%= `date ${v.id}` %>" value="<%= v.dateString() %>">
+        </div>
+        <div class='cell'>
+          <button class="f1 button misc" onclick="resetDays('<%= v.id %>')">now</button>
+          <button class="f1 button misc" onclick="addDays('<%= v.id %>', 1)">+1d</button>
+          <button class="f1 button misc" onclick="addDays('<%= v.id %>', 2)">+2d</button>
+          <button class="f1 button misc" onclick="addDays('<%= v.id %>', 7)">+7d</button>
+        </div>
+        <div class='cell'>
+          <button class="f1 button icon warn" onclick="remove('<%= v.id %>')">󰩹</button>
+          <button class="f1 button icon tertiary" onclick="update('<%= v.id %>')">󱩼</button>
+        </div>
+      </div>
+      <% }) %>
+
+      <div class="row lower3">
+        <input class="input f8" autocomplete="off" type="text" id="entry" name="entry" placeholder="New item">
+        <input class="input f1" autocomplete="off" type="text" id="priority" name="priority" placeholder="priority">
+        <input class="input f4" autocomplete="off" type="date" id="date" name="date" placeholder="date">
+        <button class="button icon primary f2" onclick="add()">󰌴</button>
+      </div>
+      <div class="row lower3">
+        <input class="input full" autocomplete="off" type="text" id="schedule" name="schedule" value="<%= subInfo?.schedule %>" placeholder="0 9 * * *">
+      </div>
+      <div class="row lower">
+        <button class="full button secondary" onclick="subscribe()">Subscribe</button>
+      </div>
+      <div class="row lower">
+        <div class="label full">
+          <% if(subInfo?.muteUntil) { %>
+            Muted until <%= new Date(subInfo.muteUntil).toLocaleString() %>
+          <% } else if(subInfo) { %>
+            Subscribed
+          <% } %>
+        </div>
+      </div>
+      <div class="row lower">
+        <button class="f1 button misc" onclick="muteFor(3600)"><span class="icon">󰝟</span>1h</button>
+        <button class="f1 button misc" onclick="muteFor(8*3600)"><span class="icon">󰝟</span>8h</button>
+        <button class="f1 button misc" onclick="muteFor(24*3600)"><span class="icon">󰝟</span>1d</button>
+        <button class="f1 button misc" onclick="muteFor(2*24*3600)"><span class="icon">󰝟</span>2d</button>
+        <button class="f1 button misc" onclick="muteFor(7*24*3600)"><span class="icon">󰝟</span>7d</button>
+      </div>
+      <div class="row lower">
+        <button class="full button misc" onclick="unsubscribe()">Unsubscribe</button>
+      </div>
     </div>
-    <div class="item">
-      <input class="input full" autocomplete="off" type="text" id="schedule" name="schedule" value="<%= subInfo?.schedule %>" placeholder="0 9 * * *">
-    </div>
-    <div class="item">
-      <button class="full button secondary" onclick="subscribe()">Subscribe</button>
-    </div>
-    <div class="item">
-      <button class="full button misc" onclick="unsubscribe()">Unsubscribe</button>
-    </div>
-  </div>
-</body>
+  </body>
 </html>
 

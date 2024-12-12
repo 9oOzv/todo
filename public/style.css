@@ -39,7 +39,6 @@ h1 {
 }
 
 .container {
-    min-width: 320px;
     max-width: 100%;
     margin: 20px;
     display: flex;
@@ -47,11 +46,18 @@ h1 {
     justify-content: center;
 }
 
-.item {
+.row {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     width: 100%;
-    margin: 1rem;
+}
+
+.cell {
+    max-width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex: 1;
 }
 
 .f1 {
@@ -75,18 +81,22 @@ h1 {
 }
 
 .icon {
+    padding: 0 0.4em;
     font-size: 1.8rem;
     line-height: 1rem;
 }
 
 .button {
+    min-width: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: bold;
     padding: 0.8rem 1.2rem;
     margin: 2px;
     border: none;
     color: white;
     text-align: center;
-    display: inline-block;
     cursor: pointer;
 }
 
@@ -99,6 +109,7 @@ h1 {
 }
 
 .input {
+    min-width: 2em;
     text-align: center;
     padding: 0.8rem 1.2rem;
     margin: 2px;
@@ -134,4 +145,20 @@ h1 {
 .warn {
     color: var(--wc);
     background-color: var(--wb);
+}
+
+.big {
+    font-size: 1.6rem;
+}
+
+.lower {
+    margin-top: 1rem;
+}
+
+.lower2 {
+    margin-top: 2rem;
+}
+
+.lower3 {
+    margin-top: 3.6rem;
 }

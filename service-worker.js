@@ -2,11 +2,11 @@ let url = '';
 
 self.addEventListener('push', event => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title ?? 'Default title';
+  const title = data.title ?? 'Title';
+  const body = data.body ?? '';
   url = data.url ?? '';
-  console.log(url);
   const options = {
-    body: data.title,
+    body: body,
     icon: '/icon.png',
     badge: '/badge.png',
     data: {
@@ -30,7 +30,7 @@ self.addEventListener('push', event => {
 });
 
 async function muteFor(seconds) {
-  const response = await fetch(
+  return await fetch(
     `${url}/mute`,
     {
       method: 'POST',
@@ -40,14 +40,6 @@ async function muteFor(seconds) {
       }
     }
   );
-  if (response.ok) {
-    const hours = seconds / 60 / 60;
-    await self.registration.showNotification(`Mute for ${hours} hours`);
-    return true;
-  } else {
-    await self.registration.showNotification('Mute failed');
-    return false;
-  }
 }
 
 self.addEventListener('notificationclick', event => {
