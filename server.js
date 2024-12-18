@@ -1,4 +1,5 @@
 const express = require('express');
+const expressWs = require('express-ws');
 const webpush = require('web-push');
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -28,39 +29,111 @@ class Config {
 };
 
 
+function isString(value) {
+  return typeof value === 'string' || value instanceof String;
+}
+
+function assertString(value, name = 'value') {
+  if (!isString(value)) {
+    throw new Error(`${name} must be a string`);
+  }
+}
+
+function assertInt(value, name = 'value') {
+  if (!Number.isInteger(value)) {
+    throw new Error(`${name} must be an integer`);
+  }
+}
+
+function assertDate(value, name = 'value') {
+  if (
+    !(value instanceof Date)
+    || isNaN(value)
+  ) {
+    throw new Error(`${name} must be a valid Date`);
+  }
+}
+
+function today() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
 class Item {
-  constructor({id, text, priority, date}) {
-    id ??= uid();
-    this.id = id;
-    this.text = text;
-    if(typeof priority !== 'number' || isNaN(priority)) {
-      priority = 1;
-    }
-    this.priority = priority;
-    date = date ? new Date(date) : new Date();
-    this.date = new Date(date.toISOString().split('T')[0]);
+  constructor({ id, text, priority = 1, date = undefined }, strict=true) {
+    date ??= today();
+    const data = {id, text, priority, date};
+    this.update(data, strict);
   }
 
-  dateString() {
-    return this.date.toISOString().split('T')[0];
+  set({id, text, priority, date}) {
+    this.id = id;
+    this.text = text;
+    this.priority = priority;
+    this.date = date;
+  }
+
+  update({id, text, priority, date}, strict=false) {
+    let data = {
+      id: id ?? this.id ?? uid(),
+      text: text ?? this.text,
+      priority: priority ?? this.priority,
+      date: new Date(date) ?? this.date,
+    };
+    if(strict) {
+      this.validate(data);
+      this.set(data);
+    } else {
+      data = this.fix(data);
+      this.set(data);
+    }
+  }
+
+  validate({id, text, priority, date}) {
+    assertString(id, 'id');
+    assertString(text, 'text');
+    assertInt(priority, 'priority');
+    assertDate(date, 'date');
+  }
+
+
+  fix({id, text, priority, date}) {
+    id ??= uid();
+    id = this.id.toString();
+    text ??= '';
+    text = this.text.toString();
+    priority = parseInt(priority);
+    if(isNaN(priority)) {
+      priority = 1;
+    }
+    date = new Date(date);
+    if(isNaN(date)) {
+      date = new Date().toISOString().split('T')[0];
+    }
+    return {id, text, priority, date};
   }
 }
 
 class Todo {
-  constructor({name, items}) {
+  constructor({name, items}, strict=true) {
+    // TODO: Handle `strict`
     this.name = name;
     items ??= [];
-    this.items = items.map(i => new Item(i));
+    this.items = items.map(i => new Item(i, strict));
   }
 
-  update(item) {
-    const index = this.items.findIndex(
-      i => i.id === item.id
+  update(itemData) {
+    const id = itemData.id;
+    const item = this.items.find(
+      i => i.id === id
     );
-    if (index === -1) {
-      this.items.push(item);
+    if (!item) {
+      this.items.push(
+        new Item(itemData)
+      )
     } else {
-      this.items[index] = item;
+      item.update(itemData);
     }
   }
 
@@ -171,13 +244,14 @@ class Notifier {
 }
 
 class SubInfo {
-  constructor({todoName, schedule, subscription, muteUntil}) {
+  constructor({todoName, schedule, subscription, muteUntil}, strict=true) {
+    //TODO: Handle `strict`
     this.todoName = todoName;
     this.schedule = schedule;
     cron.validate(schedule);
     this.subscription = subscription;
     muteUntil = new Date(muteUntil);
-    muteUntil = isNaN(muteUntil) ? null : muteUntil;
+    muteUntil = isNaN(muteUntil) ? undefined : muteUntil;
     this.muteUntil = muteUntil;
   }
 
@@ -185,16 +259,16 @@ class SubInfo {
     let date = this.muteUntil;
     date ??= new Date();
     const muteUntil = new Date(date.getTime() + seconds * 1000);
-    this.muteUntil = isNaN(muteUntil) ? null : muteUntil;
+    this.muteUntil = isNaN(muteUntil) ? undefined : muteUntil;
   }
 }
 
 class Data {
-  constructor({todos, subInfos}) {
+  constructor({todos, subInfos}, strict=true) {
     todos = todos ?? [];
     subInfos = subInfos ?? [];
-    this.todos = todos.map(t => new Todo(t));
-    this.subInfos = subInfos.map(s => new SubInfo(s));
+    this.todos = todos.map(t => new Todo(t, strict));
+    this.subInfos = subInfos.map(s => new SubInfo(s, strict));
   }
 
   todo(todoName) {
@@ -214,7 +288,7 @@ class Data {
         s => s.todoName === todoName
       );
     } catch (error) {
-      return null;
+      return undefined;
     }
   }
 
@@ -249,7 +323,8 @@ class Server {
     this.config = config;
     log.debug({config: this.config})
     this.app = express();
-    this.data = new Data(this.config.dataFile);
+    expressWs(this.app);
+    this.data = new Data({});
     webpush.setVapidDetails(
       config.externalUrl,
       config.publicVapidKey,
@@ -264,34 +339,30 @@ class Server {
     );
   }
 
-  load() {
-    try{
-      const data = fs.readFileSync(this.config.dataFile);
-      this.data = new Data(JSON.parse(data));
-    } catch (error) {
-      this.data = new Data({});
-    }
+  load(strict=true) {
+    const data = fs.readFileSync(this.config.dataFile);
+    this.data = new Data(JSON.parse(data), strict);
   }
 
   async get(req, res) {
     const todoName = req.params.code;
     log.info(`Received GET for '${todoName}'`)
-    const todo = this.data.todo(todoName);
-    const subInfo = this.data.subscription(todoName);
-    const html = await ejs.renderFile(
-      path.join(__dirname, 'views', 'index.ejs'),
-      {todo, subInfo}
-    );
-    res.send(html);
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
+
+  getData(req, res){
+    const todoName = req.params.code;
+    log.info(`Received GET data for '${todoName}'`)
+    res.json(this.clientData(todoName));
   }
 
   postUpdate(req, res) {
     const todoName = req.params.code;
     log.info(`Received POST update for '${todoName}'`)
-    const item = new Item(req.body);
-    log.debug({todoName, item})
-    this.data.todo(todoName).update(item);
-    this.save();
+    const itemData = req.body;
+    log.debug({todoName, itemData})
+    this.data.todo(todoName).update(itemData);
+    this.updated(todoName);
     res.json({ success: true });
   }
 
@@ -303,7 +374,7 @@ class Server {
     this.data
       .todo(todoName)
       .remove(id);
-    this.save();
+    this.updated(todoName);
     res.json({ success: true });
   }
 
@@ -315,7 +386,7 @@ class Server {
       .addSubInfo(subInfo);
     this.notifier.update();
     this.notifier.sendSubscriptionNotification(subInfo);
-    this.save();
+    this.updated(todoName);
     res.json({ success: true });
   }
 
@@ -324,8 +395,30 @@ class Server {
     log.info(`Received POST unsubscribe for '${todoName}'`)
     this.data.removeSubInfo(todoName);
     this.notifier.update();
-    this.save();
+    this.updated(todoName);
     res.json({ success: true });
+  }
+
+  removeSocket(todoName, ws) {
+    const sockets = this.sockets[todoName];
+    if(!sockets) {
+      return;
+    }
+    const index = sockets.indexOf(ws);
+    if (index > -1) {
+      sockets.splice(index, 1);
+    }
+  }
+
+  ws(ws, req) {
+    const todoName = req.params.code;
+    log.info(`Received WS for '${todoName}'`)
+    this.sockets[todoName] ??= [];
+    this.sockets[todoName].push(ws);
+    ws.on('close', () => {
+      log.info(`Received WS CLOSE for '${todoName}'`);
+      this.removeSocket(todoName, ws);
+    });
   }
 
   postMute(req, res) {
@@ -342,8 +435,42 @@ class Server {
     }
     subInfo.muteFor(seconds);
     this.notifier.sendMuteNotification(subInfo);
-    this.save();
+    this.updated(todoName)
     res.json({ success: true });
+  }
+
+  clientData(todoName) {
+    const todo = this.data.todo(todoName);
+    const subInfo = this.data.subscription(todoName);
+    return {
+      todo,
+      subInfo: (
+        subInfo
+        ? {
+          schedule: subInfo.schedule,
+          muteUntil: subInfo.muteUntil
+        }
+        : undefined
+      )
+    };
+  }
+
+  updateClients(todoName) {
+    log.info(`Updating clients for '${todoName}'`)
+    const sockets = this.sockets[todoName];
+    if(!sockets) {
+      return;
+    }
+    const json = JSON.stringify(this.clientData(todoName));
+    for (const ws of sockets) {
+      log.info(`Sending WS update for '${todoName}'`)
+      ws.send(json);
+    }
+  }
+
+  updated(todoName) {
+    this.save();
+    this.updateClients(todoName);
   }
 
   start() {
@@ -358,14 +485,17 @@ class Server {
       express.static(path.join(__dirname, 'service-worker.js'))
     )
     this.app.get('/:code', this.get.bind(this));
+    this.app.ws('/:code/ws', this.ws.bind(this));
+    this.app.get('/:code/data', this.getData.bind(this));
     this.app.post('/:code/update', this.postUpdate.bind(this));
     this.app.post('/:code/remove', this.postRemove.bind(this));
     this.app.post('/:code/subscribe', this.postSubscribe.bind(this));
     this.app.post('/:code/unsubscribe', this.postUnsubscribe.bind(this));
     this.app.post('/:code/mute', this.postMute.bind(this));
     this.notifier = new Notifier(this.data, this.config);
+    this.sockets = {};
     const port = this.config.port;
-    this.app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+    this.server = this.app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
     this.notifier.start();
   }
 }

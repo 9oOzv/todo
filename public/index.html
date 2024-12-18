@@ -10,29 +10,8 @@
   <body>
     <div class="container">
       <h1>Todo</h1>
-
-      <% todo.items.forEach((v) => { %>
-      <div class="row lower2">
-        <div class="label big f8" id="<%= `text ${v.id}` %>"><%= v.text %></div>
+      <div id='items' class='container'>
       </div>
-      <div class="row lower">
-        <div class='cell'>
-          <input class="input f1" autocomplete="off" type="text" id="<%= `priority ${v.id}` %>" value="<%= v.priority %>">
-          <input class="input f1" autocomplete="off" type="date" id="<%= `date ${v.id}` %>" value="<%= v.dateString() %>">
-        </div>
-        <div class='cell'>
-          <button class="f1 button misc" onclick="resetDays('<%= v.id %>')">now</button>
-          <button class="f1 button misc" onclick="addDays('<%= v.id %>', 1)">+1d</button>
-          <button class="f1 button misc" onclick="addDays('<%= v.id %>', 2)">+2d</button>
-          <button class="f1 button misc" onclick="addDays('<%= v.id %>', 7)">+7d</button>
-        </div>
-        <div class='cell'>
-          <button class="f1 button icon warn" onclick="remove('<%= v.id %>')">󰩹</button>
-          <button class="f1 button icon tertiary" onclick="update('<%= v.id %>')">󱩼</button>
-        </div>
-      </div>
-      <% }) %>
-
       <div class="row lower3">
         <input class="input f8" autocomplete="off" type="text" id="entry" name="entry" placeholder="New item">
         <input class="input f1" autocomplete="off" type="text" id="priority" name="priority" placeholder="priority">
@@ -40,18 +19,13 @@
         <button class="button icon primary f2" onclick="add()">󰌴</button>
       </div>
       <div class="row lower3">
-        <input class="input full" autocomplete="off" type="text" id="schedule" name="schedule" value="<%= subInfo?.schedule %>" placeholder="0 9 * * *">
+        <input class="input full" autocomplete="off" type="text" id="schedule" name="schedule" value="" placeholder="0 9 * * *">
       </div>
       <div class="row lower">
         <button class="full button secondary" onclick="subscribe()">Subscribe</button>
       </div>
       <div class="row lower">
         <div class="label full" id='div-muted-until'>
-          <% if(subInfo?.muteUntil) { %>
-            <%= new Date(subInfo.muteUntil).toJSON() %>
-          <% } else if(subInfo) { %>
-            Subscribed
-          <% } %>
         </div>
       </div>
       <div class="row lower">
