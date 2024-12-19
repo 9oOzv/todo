@@ -333,15 +333,27 @@ class Server {
   }
 
   save() {
-    fs.writeFileSync(
-      this.config.dataFile,
-      JSON.stringify(this.data, null, 2)
-    );
+    try {
+      fs.writeFileSync(
+        this.config.dataFile,
+        JSON.stringify(this.data, null, 2)
+      );
+    } catch (error) {
+      log.error(error);
+    }
   }
 
   load(strict=true) {
-    const data = fs.readFileSync(this.config.dataFile);
-    this.data = new Data(JSON.parse(data), strict);
+    try {
+      const data = fs.readFileSync(this.config.dataFile);
+      this.data = new Data(JSON.parse(data), strict);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        this.data = new Data({}, strict);
+        return;
+      }
+      throw error;
+    }
   }
 
   async get(req, res) {
