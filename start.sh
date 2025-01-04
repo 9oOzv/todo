@@ -16,4 +16,4 @@ fi
 
 npm audit fix
 
-node server.js
+node server.mjs start
