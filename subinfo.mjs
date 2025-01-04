@@ -14,8 +14,7 @@ class SubInfo {
   }
 
   muteFor(seconds) {
-    let date = this.muteUntil;
-    date ??= new Date();
+    const date = new Date();
     const muteUntil = new Date(date.getTime() + seconds * 1000);
     this.muteUntil = isNaN(muteUntil) ? undefined : muteUntil;
   }

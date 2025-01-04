@@ -161,10 +161,11 @@ function updateItems() {
 
 function muteUntilText(subInfo) {
   console.log(subInfo);
+  const now = new Date();
   return (
     subInfo
     ? (
-      subInfo.muteUntil
+      subInfo.muteUntil && subInfo.muteUntil > now
       ? `Muted until ${subInfo.muteUntil.toLocaleString()}`
       : 'Subscribed'
     )
