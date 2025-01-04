@@ -17,6 +17,7 @@
     "express": "^4.21.2",
     "express-ws": "^5.0.2",
     "node-cron": "^3.0.3",
-    "web-push": "^3.6.6"
+    "web-push": "^3.6.6",
+    "yargs": "^17.7.2"
   }
 }
